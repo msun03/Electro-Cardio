@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Electrocardio</string>
-    <string name="action_settings">Settings</string>
-    <string name="connect">Connect</string>
-    <string name="bluetooth">BLUETOOTH</string>
-    <string name="electroCardio">Electro Cardio</string>
+    <string name="app_name">Electro Cardio</string>
+    <string name="title">Electro Cardio</string>
+    <string name="bluetoothOn">Bluetooth On</string>
+    <string name="bluetoothOff">Bluetooth Off</string>
+    <string name="scan">Scan for Devices</string>
+    <string name="pairedDevices">Paired Devices</string>
 
 </resources>
