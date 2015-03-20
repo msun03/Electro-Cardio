@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical" >
+
+    <ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent">
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/title"
+                android:text="@string/title"
+
+                android:textSize="@dimen/abc_text_size_large_material"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+
+                android:background="#0174DF"
+
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+
+                android:paddingTop="16dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:paddingBottom="16dp" />
+
+            <Button
+                android:id="@+id/getHeartRate"
+                android:text="@string/getHeartRate"
+
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:onClick="getHeartRate"/>
+
+            <com.jjoe64.graphview.GraphView
+                android:id="@+id/heartRateGraph"
+
+                android:layout_width="match_parent"
+                android:layout_height="200dip"
+                 />
+
+            <Button
+
+                android:id="@+id/clearGraph"
+                android:text="@string/clearGraph"
+
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:onClick="clearGraph"/>
+
+        </LinearLayout>
+    </ScrollView>
+</RelativeLayout>

@@ -4,84 +4,91 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
-    <TextView
-        android:id="@+id/title"
-        android:text="@string/title"
+        <TextView
+            android:id="@+id/title"
+            android:text="@string/title"
 
-        android:textSize="@dimen/abc_text_size_large_material"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
+            android:textSize="@dimen/abc_text_size_large_material"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
 
-        android:background="#0174DF"
-
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-
-        android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentLeft="true"
-
-        android:layout_alignParentStart="true"
-        android:layout_alignParentEnd="true"
-
-        android:paddingTop="16dp"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingBottom="16dp" />
-
-    <LinearLayout
-        android:id="@+id/BTButtons"
-
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/title"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/onButton"
-            android:text="@string/bluetoothOn"
+            android:background="#0174DF"
 
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
 
-        <Button
-            android:id="@+id/offButton"
-            android:text="@string/bluetoothOff"
+            android:paddingTop="16dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingBottom="16dp" />
+
+        <LinearLayout
+            android:id="@+id/bluetoothButtons"
 
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
-    </LinearLayout>
+            android:layout_below="@id/title"
+            android:orientation="horizontal">
 
-    <Button
-        android:id="@+id/pairedDevices"
-        android:text="@string/pairedDevices"
+            <Button
+                android:id="@+id/onButton"
+                android:text="@string/bluetoothOn"
 
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/BTButtons" />
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="turnOnBT"/>
 
-    <Button
-        android:id="@+id/scan"
-        android:text="@string/scan"
+            <Button
+                android:id="@+id/offButton"
+                android:text="@string/bluetoothOff"
 
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/pairedDevices" />
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="turnOffBT"/>
+        </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/listLayout"
-
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/scan" >
-
-        <ListView
-            android:id="@+id/devicesList"
+        <Button
+            android:id="@+id/scanForDevices"
+            android:text="@string/scan"
 
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content" />
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            android:layout_below="@id/bluetoothButtons"
+            android:onClick="scanForDevices"/>
+
+        <Button
+            android:id="@+id/pairedDevices"
+            android:text="@string/pairedDevices"
+
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/scanForDevices"
+            android:onClick="showPairedDevices"/>
+
+        <LinearLayout
+            android:id="@+id/listLayout"
+
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/pairedDevices"
+            android:layout_above="@+id/heartRate">
+
+            <ListView
+                android:id="@+id/devicesList"
+
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/heartRate"
+            android:text="@string/heartRate"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:onClick="toHeartRateActivity"
+            />
 
 </RelativeLayout>

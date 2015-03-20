@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Main Activity -->
     <string name="app_name">Electro Cardio</string>
     <string name="title">Electro Cardio</string>
     <string name="bluetoothOn">Bluetooth On</string>
     <string name="bluetoothOff">Bluetooth Off</string>
     <string name="scan">Scan for Devices</string>
     <string name="pairedDevices">Paired Devices</string>
+    <string name="heartRate">Heart Rate</string>
+    <string name="title_activity_heart_rate">HeartRateActivity</string>
+
+    <!-- Heart Rate Activity -->
+    <string name="getHeartRate">Get Heart Rate</string>
+    <string name="action_settings">Action Settings</string>
+    <string name="backToBluetooth">Bluetooth Screen</string>
+    <string name="clearGraph">Clear Graph</string>
 
 </resources>
