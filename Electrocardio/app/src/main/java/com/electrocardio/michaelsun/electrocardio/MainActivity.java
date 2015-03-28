@@ -1,42 +1,58 @@
 package com.electrocardio.michaelsun.electrocardio;
 /* Author: Michael Sun */
 
-import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.UUID;
+
 import android.content.Context;
 import android.os.Bundle;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Handler;
 
-import java.io.IOException;
-import java.util.Set;
-import java.util.UUID;
+import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 
 import android.app.Activity;
+import android.util.Log;
+
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Button;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
-    private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
+    static Handler mHandler = new Handler();
+    static ConnectedThread connectedThread;
+    protected static final int SUCCESS_CONNECT = 0;
+    protected static final int MESSAGE_READ = 1;
+    private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     final int REQUEST_ENABLE_BT = 1;
-    BluetoothAdapter myBluetoothAdapter;
-    Set<BluetoothDevice> pairedDevices;
-    ArrayAdapter<String> BTArrayAdapter;
-    BluetoothDevice myDevice;
+
+    ArrayAdapter<String> listAdapter;
+    BluetoothAdapter btAdapter;
+    Set<BluetoothDevice> devicesArray;
+    ArrayList<String> pairedDevices;
+    ArrayList<BluetoothDevice> devices;
+
+    IntentFilter filter;
+    BroadcastReceiver receiver;
+
     Button onButton;
     Button offButton;
     Button pairedDevicesButton;
     Button scanButton;
-    ListView devicesList;
+    ListView listView;
     Button heartRateButton;
 
     @Override
@@ -45,41 +61,80 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         //Initialize the User Interface view
-        initializeUI();
+        initializeButtons();
+        initialize();
 
         //Checks if Bluetooth is supported on the device
-        if(myBluetoothAdapter == null){
+        if(btAdapter == null){
             Toast.makeText(getApplicationContext(),"Your device does not support Bluetooth",
                     Toast.LENGTH_LONG).show();
             finish();
         } else {
             // Create the arrayAdapter that contains the Bluetooth Devices, and set it to the ListView
-            BTArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
-            devicesList.setAdapter(BTArrayAdapter);
 
-            devicesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id){
-                    /*Thread myConnectThread = new ConnectThread(myDevice);
-                    myConnectThread.start();*/
-                }
-            });
         }
     }
 
-    /** Method for initializing the User Interface.*/
-    private void initializeUI(){
+    void initializeButtons(){
         onButton = (Button)findViewById(R.id.onButton);
         offButton = (Button)findViewById(R.id.offButton);
         pairedDevicesButton = (Button)findViewById(R.id.pairedDevices);
         scanButton = (Button)findViewById(R.id.scanForDevices);
-        devicesList = (ListView)findViewById(R.id.devicesList);
         heartRateButton = (Button)findViewById(R.id.heartRate);
-        myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    }
+
+    /** Method for initializing the User Interface.*/
+    private void initialize(){
+
+        listView = (ListView)findViewById(R.id.devicesList);
+        listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,0);
+        listView.setOnItemClickListener(new OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
+
+                if (btAdapter.isDiscovering()){
+                    btAdapter.cancelDiscovery();
+                }
+                Toast.makeText(getApplicationContext(),"Connecting...",
+                        Toast.LENGTH_SHORT).show();
+                BluetoothDevice selectedDevice = devices.get(arg2);
+                ConnectThread connect = new ConnectThread(selectedDevice);
+                connect.start();
+            };
+        });
+        listView.setAdapter(listAdapter);
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+        pairedDevices = new ArrayList<String>();
+        filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        devices = new ArrayList<BluetoothDevice>();
+        receiver = new BroadcastReceiver() {
+
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                // When discovery finds a device
+                if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                    // Get the BluetoothDevice object from the Intent
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    devices.add(device);
+                    String s = "";
+                    for (int a = 0; a < pairedDevices.size(); a++){
+
+                        if (device.getName().equals(pairedDevices.get(a))){
+                            s = "(Paired)";
+                            break;
+                        }
+                    }
+                    listAdapter.add(device.getName() + " " + s + " " + "\n" + device.getAddress());
+                }
+            }
+        };
+
+        registerReceiver(receiver, filter);
     }
 
     /** Method for turning on Bluetooth. */
     public void turnOnBT(View v) {
-        if(!myBluetoothAdapter.isEnabled()){
+        if(!btAdapter.isEnabled()){
             Intent turnOnIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(turnOnIntent, REQUEST_ENABLE_BT);
         } else {
@@ -90,40 +145,32 @@ public class MainActivity extends Activity {
 
     /** Method for turning off Bluetooth. */
     public void turnOffBT(View v){
-        myBluetoothAdapter.disable();
+        btAdapter.disable();
         Toast.makeText(getApplicationContext(),"Bluetooth turned off!",
                 Toast.LENGTH_LONG).show();
     }
 
     /** Method for Scanning nearby Bluetooth devices. */
     public void scanForDevices(View v){
+        listAdapter.clear();
+        btAdapter.cancelDiscovery();
+        btAdapter.startDiscovery();
+        registerReceiver(receiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
 
-        if(!myBluetoothAdapter.isEnabled()) {
-            Toast.makeText(getApplicationContext(),"Bluetooth needs to be enabled to Scan!",
-                    Toast.LENGTH_LONG).show();
-        }
-        if (myBluetoothAdapter.isDiscovering()){
-            myBluetoothAdapter.cancelDiscovery();
-        } else {
-            Toast.makeText(getApplicationContext(),"Scanning...",
-                    Toast.LENGTH_SHORT).show();
-
-            BTArrayAdapter.clear();
-            myBluetoothAdapter.startDiscovery();
-
-            registerReceiver(bReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-        }
+        Toast.makeText(getApplicationContext(),"Scanning...",
+                Toast.LENGTH_SHORT).show();
     }
 
     /** Method for showing currently paired devices in the list. */
     public void showPairedDevices(View v){
-        pairedDevices = myBluetoothAdapter.getBondedDevices();
-        BTArrayAdapter.clear();
 
-        if (pairedDevices.size() > 0) {
-            for (BluetoothDevice device : pairedDevices) {
-                BTArrayAdapter.add(device.getName() + " (Paired)" + "\n" + device.getAddress());
-                myDevice = device;
+        devicesArray = btAdapter.getBondedDevices();
+        listAdapter.clear();
+
+        if (devicesArray.size() > 0) {
+            for (BluetoothDevice device : devicesArray) {
+                pairedDevices.add(device.getName());
+                listAdapter.add(device.getName() + " (Paired)" + "\n" + device.getAddress());
             }
 
             Toast.makeText(getApplicationContext(), "Showing paired devices",
@@ -131,64 +178,13 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // TODO Auto-generated method stub
-        if(requestCode == REQUEST_ENABLE_BT){
-            if(myBluetoothAdapter.isEnabled()) {
-                Toast.makeText(getApplicationContext(),"Bluetooth turned on",
-                        Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(getApplicationContext(),"Bluetooth turned off",
-                        Toast.LENGTH_SHORT).show();
-            }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_CANCELED){
+            Toast.makeText(getApplicationContext(), "Bluetooth must be enabled to continue", Toast.LENGTH_SHORT).show();
+            finish();
         }
     }
-
-    final BroadcastReceiver bReceiver = new BroadcastReceiver() {
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            // When discovery finds a device
-            if (BluetoothDevice.ACTION_FOUND.equals(action)) {
-                // Get the BluetoothDevice object from the Intent
-                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                // Add the name and the MAC address of the object to the arrayAdapter
-                BTArrayAdapter.add(device.getName() + "\n" + device.getAddress());
-                BTArrayAdapter.notifyDataSetChanged();
-            }
-        }
-    };
-
-    /*private class ConnectThread extends Thread {
-
-        private final BluetoothSocket mmSocket;
-        private final BluetoothDevice mmDevice;
-
-        public ConnectThread(BluetoothDevice device) {
-            BluetoothSocket tmp = null;
-            mmDevice = device;
-            try {
-                tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
-            } catch (IOException e) { }
-            mmSocket = tmp;
-        }
-        public void run() {
-            myBluetoothAdapter.cancelDiscovery();
-            try {
-                mmSocket.connect();
-            } catch (IOException connectException) {
-                try {
-                    mmSocket.close();
-                } catch (IOException closeException) { }
-                return;
-            }
-        }
-        public void cancel() {
-            try {
-                mmSocket.close();
-            } catch (IOException e) { }
-        }
-    }*/
 
     /** Method for switching to the Heart Rate Activity. */
     public void toHeartRateActivity(View v) {
@@ -205,6 +201,122 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(bReceiver);
+        //unregisterReceiver(bReceiver);
+    }
+
+    private class ConnectThread extends Thread {
+        private final BluetoothSocket mmSocket;
+        private final BluetoothDevice mmDevice;
+
+        public ConnectThread(BluetoothDevice device) {
+            // Use a temporary object that is later assigned to mmSocket,
+            // because mmSocket is final
+            BluetoothSocket tmp = null;
+            mmDevice = device;
+
+            // Get a BluetoothSocket to connect with the given BluetoothDevice
+            try {
+                // MY_UUID is the app's UUID string, also used by the server code
+                tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
+            } catch (IOException e) { }
+            mmSocket = tmp;
+        }
+
+        public void run() {
+            // Cancel discovery because it will slow down the connection
+            btAdapter.cancelDiscovery();
+
+            try {
+                // Connect the device through the socket. This will block
+                // until it succeeds or throws an exception
+                mmSocket.connect();
+                //connectedThread = new ConnectedThread(mmSocket);
+            } catch (IOException connectException) {
+                // Unable to connect; close the socket and get out
+                try {
+                    mmSocket.close();
+                } catch (IOException closeException) { }
+                return;
+            }
+
+            // Do work to manage the connection (in a separate thread)
+            mHandler.obtainMessage(SUCCESS_CONNECT, mmSocket).sendToTarget();
+        }
+
+        /** Will cancel an in-progress connection, and close the socket */
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) { }
+        }
+    }
+
+    static class ConnectedThread extends Thread {
+        private final BluetoothSocket mmSocket;
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+
+        public ConnectedThread(BluetoothSocket socket) {
+            mmSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            // Get the input and output streams, using temp objects because
+            // member streams are final
+            try {
+                tmpIn = socket.getInputStream();
+                tmpOut = socket.getOutputStream();
+            } catch (IOException e) { }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+        }
+        StringBuffer sbb = new StringBuffer();
+        public void run() {
+
+            byte[] buffer;  // buffer store for the stream
+            int bytes; // bytes returned from read()
+
+            // Keep listening to the InputStream until an exception occurs
+            while (true) {
+                try {
+                    try {
+                        sleep(30);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    buffer = new byte[1024];
+                    // Read from the InputStream
+                    bytes = mmInStream.read(buffer);
+                    // Send the obtained bytes to the UI activity
+                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer).sendToTarget();
+                } catch (IOException e) {
+                    break;
+                }
+            }
+        }
+
+        /* Call this from the main activity to send data to the remote device */
+        public void write(String income) {
+
+            try {
+                mmOutStream.write(income.getBytes());
+                for(int i=0;i<income.getBytes().length;i++)
+                    Log.v("outStream"+Integer.toString(i),Character.toString((char)(Integer.parseInt(Byte.toString(income.getBytes()[i])))));
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } catch (IOException e) { }
+        }
+
+        /* Call this from the main activity to shutdown the connection */
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) { }
+        }
     }
 }
